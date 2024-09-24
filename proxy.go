@@ -127,12 +127,12 @@ func (p *Proxy) proxyTransportLayer(comeFrom FullDuplexStream) {
 			upStream.SetReadDeadline(time.Now().Add(readTimeout))
 		}
 		nr, err = upStream.Read(buf)
-		fmt.Printf("recv: %d, %s\n", nr, err)
+		fmt.Printf("recv: %d, %s\n", nr, err.Error())
 		if nr < 1 && nil == err {
 			continue
 		}
 
-		if 0 < nr && nil == err {
+		if 0 < nr && (nil == err || io.EOF == err) {
 			if 0 < writeTimeout {
 				comeFrom.SetWriteDeadline(time.Now().Add(writeTimeout))
 			}
