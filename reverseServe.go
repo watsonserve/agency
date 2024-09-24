@@ -15,7 +15,6 @@ import (
 
 func talkWR(stream quic.Stream, handle http.HandlerFunc) {
 	headerList := make([]string, 0)
-	fmt.Println("recv a conn")
 	reader := bufio.NewReader(stream)
 	for {
 		line, err := reader.ReadString('\n')
@@ -25,7 +24,6 @@ func talkWR(stream quic.Stream, handle http.HandlerFunc) {
 		fmt.Println(len(line), line)
 		headerList = append(headerList, line)
 	}
-	fmt.Println("read header done")
 
 	requestTo := strings.Split(headerList[0], " ")
 	req, err := http.NewRequest(requestTo[0], requestTo[1], stream)
@@ -36,9 +34,8 @@ func talkWR(stream quic.Stream, handle http.HandlerFunc) {
 
 	req.Header = make(http.Header)
 	for _, item := range headerList[1:] {
-		kv := strings.Split(item, ":")
+		kv := strings.SplitN(item, ":", 2)
 		kv[1] = strings.TrimSpace(kv[1])
-		fmt.Printf("header: %s: %s,\n", kv[0], kv[1])
 		req.Header.Add(kv[0], kv[1])
 	}
 
