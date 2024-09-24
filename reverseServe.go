@@ -14,10 +14,13 @@ import (
 
 func talkWR(stream quic.Stream, handle http.HandlerFunc) {
 	headerList := make([]string, 0)
+	fmt.Println("recv a conn")
 	reader := bufio.NewReader(stream)
 	for line, err := reader.ReadString('\n'); line != "\r\n" && nil == err; {
+		fmt.Println(line, len(line))
 		headerList = append(headerList, line)
 	}
+	fmt.Println("read header done")
 
 	requestTo := strings.Split(headerList[0], " ")
 	req, err := http.NewRequest(requestTo[0], requestTo[1], stream)
