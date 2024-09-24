@@ -14,6 +14,8 @@ import (
 )
 
 func talkWR(stream quic.Stream, handle http.HandlerFunc) {
+	defer stream.Close()
+
 	headerList := make([]string, 0)
 	reader := bufio.NewReader(stream)
 	for {
@@ -21,7 +23,6 @@ func talkWR(stream quic.Stream, handle http.HandlerFunc) {
 		if line == "\r\n" || nil != err && io.EOF != err {
 			break
 		}
-		fmt.Println(len(line), line)
 		headerList = append(headerList, line)
 	}
 
@@ -40,7 +41,6 @@ func talkWR(stream quic.Stream, handle http.HandlerFunc) {
 	}
 
 	handle(newResponse(stream), req)
-	stream.Close()
 }
 
 func ReverseServe(network string, tlsCfg *tls.Config, quicConf *quic.Config, handle http.Handler) {
