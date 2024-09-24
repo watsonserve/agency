@@ -1,13 +1,13 @@
 package agency_test
 
 import (
-	"agency"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
 	quic "github.com/quic-go/quic-go"
+	"github.com/watsonserve/agency"
 	"github.com/watsonserve/goutils"
 )
 

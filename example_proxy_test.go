@@ -1,11 +1,11 @@
 package agency_test
 
 import (
-	"agency"
 	"fmt"
 	"log"
 	"os"
 
+	"github.com/watsonserve/agency"
 	"github.com/watsonserve/goutils"
 )
 
