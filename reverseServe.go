@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -16,8 +17,12 @@ func talkWR(stream quic.Stream, handle http.HandlerFunc) {
 	headerList := make([]string, 0)
 	fmt.Println("recv a conn")
 	reader := bufio.NewReader(stream)
-	for line, err := reader.ReadString('\n'); line != "\r\n" && nil == err; {
-		fmt.Println(line, len(line))
+	for {
+		line, err := reader.ReadString('\n')
+		if line == "\r\n" || nil != err && io.EOF != err {
+			break
+		}
+		fmt.Println(len(line), line)
 		headerList = append(headerList, line)
 	}
 	fmt.Println("read header done")
