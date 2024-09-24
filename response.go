@@ -39,9 +39,12 @@ func (resp *Response) Write(body []byte) (int, error) {
 		}
 	}
 	var bn int = 0
-	hn, err := fmt.Fprintf(resp.stream, "HTTP/1.1 %03d %s\r\n%s\r\n", code, strStatus, strHeader)
-	if nil == err {
-		bn, err = resp.stream.Write(body)
-	}
+	header := fmt.Sprintf("HTTP/1.1 %03d %s\r\n%s\r\n", code, strStatus, strHeader)
+	hn := len(header)
+	fmt.Println("response:\n", header)
+	resp.stream.Write([]byte(header))
+	// if nil == err {
+	bn, err := resp.stream.Write(body)
+	// }
 	return hn + bn, err
 }
