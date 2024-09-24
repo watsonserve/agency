@@ -1,4 +1,4 @@
-module agency
+module github.com/watsonserve/agency
 
 go 1.21
 
