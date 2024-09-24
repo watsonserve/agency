@@ -1,6 +1,7 @@
 package agency
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -12,15 +13,13 @@ import (
 )
 
 func talkWR(stream quic.Stream, handle http.HandlerFunc) {
-	var strHeader string
-	_, err := fmt.Fscanf(stream, "%s\r\n\r\n", &strHeader)
-	if nil != err {
-		fmt.Fprintln(os.Stderr, "read data", err)
-		return
+	headerList := make([]string, 0)
+	reader := bufio.NewReader(stream)
+	for line, err := reader.ReadString('\n'); line != "\r\n" && nil == err; {
+		headerList = append(headerList, line)
 	}
 
-	lines := strings.Split(strHeader, "\r\n")
-	requestTo := strings.Split(lines[0], " ")
+	requestTo := strings.Split(headerList[0], " ")
 	req, err := http.NewRequest(requestTo[0], requestTo[1], stream)
 	if nil != err {
 		fmt.Fprintln(os.Stderr, "make request", err)
@@ -28,9 +27,11 @@ func talkWR(stream quic.Stream, handle http.HandlerFunc) {
 	}
 
 	req.Header = make(http.Header)
-	for _, item := range lines[1:] {
+	for _, item := range headerList[1:] {
 		kv := strings.Split(item, ":")
-		req.Header.Add(kv[0], strings.TrimSpace(kv[1]))
+		kv[1] = strings.TrimSpace(kv[1])
+		fmt.Printf("header: %s: %s,\n", kv[0], kv[1])
+		req.Header.Add(kv[0], kv[1])
 	}
 
 	handle(newResponse(stream), req)
