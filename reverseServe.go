@@ -40,7 +40,9 @@ func talkWR(stream quic.Stream, handle http.HandlerFunc) {
 		req.Header.Add(kv[0], kv[1])
 	}
 
-	handle(newResponse(stream), req)
+	resp := newResponse(stream)
+	handle(resp, req)
+	resp.Flush(nil)
 }
 
 func ReverseServe(network string, tlsCfg *tls.Config, quicConf *quic.Config, handle http.Handler) {
