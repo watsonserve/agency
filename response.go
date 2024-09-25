@@ -23,7 +23,7 @@ func newResponse(stream io.Writer) *Response {
 		statusCode: 200,
 		header:     make(http.Header),
 		stream:     stream,
-		buf:        *bytes.NewBuffer(make([]byte, RESPONSE_BUF_SIZ)),
+		buf:        *bytes.NewBuffer(make([]byte, 0)),
 	}
 }
 
