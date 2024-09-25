@@ -89,22 +89,29 @@ func (p *Proxy) getAQuicConn(channel chan quic.Connection) quic.Stream {
 	return nil
 }
 
+func closeStream(foo, bar FullDuplexStream) {
+	if nil != foo {
+		foo.Close()
+	}
+	if nil != bar {
+		bar.Close()
+	}
+	// log.Printf("Transport Closed")
+}
+
 func (p *Proxy) proxyTransportLayer(comeFrom FullDuplexStream) {
+	bufSiz := p.BufSiz
+	if bufSiz < 1 {
+		log.Println("failed: invoid bufsize")
+		return
+	}
+
 	upStream := p.getAQuicConn(p.channel)
 
-	defer (func() {
-		if nil != upStream {
-			upStream.Close()
-		}
-		if nil != comeFrom {
-			comeFrom.Close()
-		}
-		log.Printf("Transport Closed")
-	})()
+	defer closeStream(upStream, comeFrom)
 
-	bufSiz := p.BufSiz
-	if nil == upStream || nil == comeFrom || bufSiz < 1 {
-		log.Println("refused: invoid stream or bufsize")
+	if nil == upStream || nil == comeFrom {
+		log.Println("refused: invoid stream")
 		return
 	}
 
