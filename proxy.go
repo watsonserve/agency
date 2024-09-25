@@ -3,7 +3,6 @@ package agency
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -92,72 +91,43 @@ func (p *Proxy) getAQuicConn(channel chan quic.Connection) quic.Stream {
 
 func (p *Proxy) proxyTransportLayer(comeFrom FullDuplexStream) {
 	upStream := p.getAQuicConn(p.channel)
-	if nil == upStream {
-		comeFrom.Close()
-		return
-	}
-	bufSiz := p.BufSiz
-	readTimeout := p.ReadTimeout
-	writeTimeout := p.WriteTimeout
 
 	defer (func() {
-		log.Printf("Close all")
 		if nil != upStream {
 			upStream.Close()
 		}
 		if nil != comeFrom {
 			comeFrom.Close()
 		}
+		log.Printf("Transport Closed")
 	})()
 
+	bufSiz := p.BufSiz
 	if nil == upStream || nil == comeFrom || bufSiz < 1 {
-		log.Println(errors.New("invoid params"))
+		log.Println("refused: invoid stream or bufsize")
+		return
 	}
 
-	nr := 0
-	nw := 0
-	written := 0
+	var written int64 = 0
 	var err error = nil
-	buf := make([]byte, bufSiz)
 
 	go io.CopyBuffer(upStream, comeFrom, make([]byte, bufSiz))
 
-	for {
-		if 0 < readTimeout {
-			upStream.SetReadDeadline(time.Now().Add(readTimeout))
-		}
-		nr, err = upStream.Read(buf)
-		fmt.Printf("recv: %d, %s\n", nr, err.Error())
-		if nr < 1 && nil == err {
-			continue
-		}
-
-		if 0 < nr && (nil == err || io.EOF == err) {
-			if 0 < writeTimeout {
-				comeFrom.SetWriteDeadline(time.Now().Add(writeTimeout))
-			}
-			nw, err = comeFrom.Write(buf[0:nr])
-			fmt.Printf("written: %d, %s\n", nw, err)
-		}
-
-		if nil != err {
-			break
-		}
-
-		if nw < 0 || nr < nw {
-			err = errors.New("invalid write result")
-			break
-		}
-
-		if nr != nw {
-			err = io.ErrShortWrite
-			break
-		}
-
-		written += nw
+	readTimeout := p.ReadTimeout
+	writeTimeout := p.WriteTimeout
+	if 0 < readTimeout {
+		upStream.SetReadDeadline(time.Now().Add(readTimeout))
 	}
+	if 0 < writeTimeout {
+		comeFrom.SetReadDeadline(time.Now().Add(writeTimeout))
+	}
+	written, err = io.CopyBuffer(comeFrom, upStream, make([]byte, bufSiz))
 
-	log.Printf("transfer data: %d, %s", written, err)
+	errMsg := "success"
+	if nil != err {
+		errMsg = "failed -- " + err.Error()
+	}
+	log.Printf("transfer data: length=%d, status=%s", written, errMsg)
 }
 
 func (p *Proxy) ListenAndServe(comeFrom, upStream string) error {
