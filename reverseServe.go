@@ -76,8 +76,8 @@ func transStream(upstream string, stream quic.Stream) {
 		return
 	}
 	defer upConn.Close()
-	go io.CopyBuffer(upConn, stream, make([]byte, bufSiz))
-	go io.CopyBuffer(stream, upConn, make([]byte, bufSiz))
+	io.CopyBuffer(upConn, stream, make([]byte, bufSiz))
+	io.CopyBuffer(stream, upConn, make([]byte, bufSiz))
 }
 
 func ReverseTrans(network string, tlsCfg *tls.Config, quicConf *quic.Config, upstream string) {
