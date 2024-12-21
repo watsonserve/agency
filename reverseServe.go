@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -61,6 +62,40 @@ func ReverseServe(network string, tlsCfg *tls.Config, quicConf *quic.Config, han
 			}
 
 			go talkWR(stream, handle.ServeHTTP)
+		}
+
+		conn.CloseWithError(0, "")
+	}
+}
+
+func transStream(upstream string, stream quic.Stream) {
+	bufSiz := 4096
+	defer stream.Close()
+	upConn, err := net.Dial("tcp", upstream)
+	if nil != err {
+		return
+	}
+	defer upConn.Close()
+	go io.CopyBuffer(upConn, stream, make([]byte, bufSiz))
+	go io.CopyBuffer(stream, upConn, make([]byte, bufSiz))
+}
+
+func ReverseTrans(network string, tlsCfg *tls.Config, quicConf *quic.Config, upstream string) {
+	for {
+		conn, err := quic.DialAddr(context.Background(), network, tlsCfg, quicConf)
+		if nil != err {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		for {
+			stream, err := conn.AcceptStream(context.Background())
+			if nil != err {
+				fmt.Fprintln(os.Stderr, "waiting on conn", err)
+				break
+			}
+
+			go transStream(upstream, stream)
 		}
 
 		conn.CloseWithError(0, "")
