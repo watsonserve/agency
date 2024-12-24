@@ -93,7 +93,7 @@ func transStream(upstream string, stream quic.Stream, timeout time.Duration) {
 	log.Printf("transfer data: length=%d, status=%s", written, errMsg)
 }
 
-func ReverseTrans(network string, tlsCfg *tls.Config, quicConf *quic.Config, upstream string) {
+func ReverseTrans(network string, tlsCfg *tls.Config, quicConf *quic.Config, upstream string, timeout time.Duration) {
 	for {
 		conn, err := quic.DialAddr(context.Background(), network, tlsCfg, quicConf)
 		if nil != err {
@@ -108,7 +108,7 @@ func ReverseTrans(network string, tlsCfg *tls.Config, quicConf *quic.Config, ups
 				break
 			}
 
-			go transStream(upstream, stream, 4)
+			go transStream(upstream, stream, timeout)
 		}
 
 		conn.CloseWithError(0, "")
