@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -14,13 +13,6 @@ import (
 	quic "github.com/quic-go/quic-go"
 	"github.com/watsonserve/goutils"
 )
-
-type FullDuplexStream interface {
-	io.ReadWriteCloser
-	SetDeadline(t time.Time) error
-	SetReadDeadline(t time.Time) error
-	SetWriteDeadline(t time.Time) error
-}
 
 type Proxy struct {
 	channel      chan quic.Connection
@@ -89,52 +81,17 @@ func (p *Proxy) getAQuicConn(channel chan quic.Connection) quic.Stream {
 	return nil
 }
 
-func closeStream(foo, bar FullDuplexStream) {
-	if nil != foo {
-		foo.Close()
-	}
-	if nil != bar {
-		bar.Close()
-	}
-	// log.Printf("Transport Closed")
-}
-
 func (p *Proxy) proxyTransportLayer(comeFrom FullDuplexStream) {
 	bufSiz := p.BufSiz
+	rTimeout := p.ReadTimeout
+	wTimeout := p.WriteTimeout
 	if bufSiz < 1 {
 		log.Println("failed: invoid bufsize")
 		return
 	}
 
 	upStream := p.getAQuicConn(p.channel)
-
-	defer closeStream(upStream, comeFrom)
-
-	if nil == upStream || nil == comeFrom {
-		log.Println("refused: invoid stream")
-		return
-	}
-
-	var written int64 = 0
-	var err error = nil
-
-	go io.CopyBuffer(upStream, comeFrom, make([]byte, bufSiz))
-
-	readTimeout := p.ReadTimeout
-	writeTimeout := p.WriteTimeout
-	if 0 < readTimeout {
-		upStream.SetReadDeadline(time.Now().Add(readTimeout))
-	}
-	if 0 < writeTimeout {
-		comeFrom.SetWriteDeadline(time.Now().Add(writeTimeout))
-	}
-	written, err = io.CopyBuffer(comeFrom, upStream, make([]byte, bufSiz))
-
-	errMsg := "success"
-	if nil != err {
-		errMsg = "failed -- " + err.Error()
-	}
-	log.Printf("transfer data: length=%d, status=%s", written, errMsg)
+	pipe(upStream, comeFrom, bufSiz, rTimeout, wTimeout)
 }
 
 func (p *Proxy) ListenAndServe(comeFrom, upStream string) error {
