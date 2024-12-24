@@ -6,10 +6,12 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	quic "github.com/quic-go/quic-go"
 )
@@ -68,7 +70,7 @@ func ReverseServe(network string, tlsCfg *tls.Config, quicConf *quic.Config, han
 	}
 }
 
-func transStream(upstream string, stream quic.Stream) {
+func transStream(upstream string, stream quic.Stream, timeout time.Duration) {
 	bufSiz := 4096
 	defer stream.Close()
 	upConn, err := net.Dial("tcp", upstream)
@@ -76,8 +78,19 @@ func transStream(upstream string, stream quic.Stream) {
 		return
 	}
 	defer upConn.Close()
-	io.CopyBuffer(upConn, stream, make([]byte, bufSiz))
-	io.CopyBuffer(stream, upConn, make([]byte, bufSiz))
+
+	go io.CopyBuffer(upConn, stream, make([]byte, bufSiz))
+
+	if 0 < timeout {
+		upConn.SetDeadline(time.Now().Add(timeout))
+		stream.SetDeadline(time.Now().Add(timeout))
+	}
+	written, err := io.CopyBuffer(stream, upConn, make([]byte, bufSiz))
+	errMsg := "success"
+	if nil != err {
+		errMsg = "failed -- " + err.Error()
+	}
+	log.Printf("transfer data: length=%d, status=%s", written, errMsg)
 }
 
 func ReverseTrans(network string, tlsCfg *tls.Config, quicConf *quic.Config, upstream string) {
@@ -95,7 +108,7 @@ func ReverseTrans(network string, tlsCfg *tls.Config, quicConf *quic.Config, ups
 				break
 			}
 
-			go transStream(upstream, stream)
+			go transStream(upstream, stream, 4)
 		}
 
 		conn.CloseWithError(0, "")

@@ -126,7 +126,7 @@ func (p *Proxy) proxyTransportLayer(comeFrom FullDuplexStream) {
 		upStream.SetReadDeadline(time.Now().Add(readTimeout))
 	}
 	if 0 < writeTimeout {
-		comeFrom.SetReadDeadline(time.Now().Add(writeTimeout))
+		comeFrom.SetWriteDeadline(time.Now().Add(writeTimeout))
 	}
 	written, err = io.CopyBuffer(comeFrom, upStream, make([]byte, bufSiz))
 
