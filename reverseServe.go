@@ -70,13 +70,12 @@ func ReverseServe(network string, tlsCfg *tls.Config, quicConf *quic.Config, han
 }
 
 func transStream(upstream string, stream quic.Stream, timeout time.Duration) {
-	bufSiz := 8192
 	upConn, err := net.Dial("tcp", upstream)
 	if nil != err {
 		stream.Close()
 		return
 	}
-	pipe(upConn, stream, bufSiz, timeout, timeout)
+	pipe(upConn, stream, timeout, timeout)
 }
 
 func ReverseTrans(network string, tlsCfg *tls.Config, quicConf *quic.Config, upstream string, timeout time.Duration) {

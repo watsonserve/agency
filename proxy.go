@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strings"
@@ -18,12 +17,11 @@ type Proxy struct {
 	channel      chan quic.Connection
 	TlsCfg       *tls.Config
 	QuicConf     *quic.Config
-	BufSiz       int
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 }
 
-func New(crt, key, ca string, bufsiz, rTimeout, wTimeout int) (*Proxy, error) {
+func New(crt, key, ca string, rTimeout, wTimeout int) (*Proxy, error) {
 	quicConf := &quic.Config{
 		KeepAlivePeriod: time.Duration(10) * time.Second,
 		MaxIdleTimeout:  time.Duration(30) * time.Second,
@@ -39,7 +37,6 @@ func New(crt, key, ca string, bufsiz, rTimeout, wTimeout int) (*Proxy, error) {
 		channel:      make(chan quic.Connection, 5),
 		TlsCfg:       tlsCfg,
 		QuicConf:     quicConf,
-		BufSiz:       bufsiz,
 		ReadTimeout:  time.Duration(rTimeout) * time.Second,
 		WriteTimeout: time.Duration(wTimeout) * time.Second,
 	}, nil
@@ -82,16 +79,11 @@ func (p *Proxy) getAQuicConn(channel chan quic.Connection) quic.Stream {
 }
 
 func (p *Proxy) proxyTransportLayer(comeFrom FullDuplexStream) {
-	bufSiz := p.BufSiz
 	rTimeout := p.ReadTimeout
 	wTimeout := p.WriteTimeout
-	if bufSiz < 1 {
-		log.Println("failed: invoid bufsize")
-		return
-	}
 
 	upStream := p.getAQuicConn(p.channel)
-	pipe(upStream, comeFrom, bufSiz, rTimeout, wTimeout)
+	pipe(upStream, comeFrom, rTimeout, wTimeout)
 }
 
 func (p *Proxy) ListenAndServe(comeFrom, upStream string) error {
