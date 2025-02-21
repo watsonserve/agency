@@ -68,7 +68,7 @@ func copyBuffer(dst io.Writer, src io.Reader) (written int64, err error) {
 				break
 			}
 			if 4 == (logLev & 4) {
-				fmt.Println(buf[0:nr])
+				fmt.Println(string(buf[0:nr]))
 			}
 		}
 		if er != nil {
