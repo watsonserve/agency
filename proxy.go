@@ -14,7 +14,7 @@ import (
 )
 
 type Proxy struct {
-	channel      chan quic.Connection
+	channel      chan *quic.Conn
 	TlsCfg       *tls.Config
 	QuicConf     *quic.Config
 	ReadTimeout  time.Duration
@@ -34,7 +34,7 @@ func New(crt, key, ca string, rTimeout, wTimeout int) (*Proxy, error) {
 	}
 
 	return &Proxy{
-		channel:      make(chan quic.Connection, 5),
+		channel:      make(chan *quic.Conn, 5),
 		TlsCfg:       tlsCfg,
 		QuicConf:     quicConf,
 		ReadTimeout:  time.Duration(rTimeout) * time.Second,
@@ -64,7 +64,7 @@ func (p *Proxy) srv(port string) {
 	}
 }
 
-func (p *Proxy) getAQuicConn(channel chan quic.Connection) quic.Stream {
+func (p *Proxy) getAQuicConn(channel chan *quic.Conn) *quic.Stream {
 	for 0 < len(channel) {
 		quicConn := <-channel
 		stream, err := quicConn.OpenStream()

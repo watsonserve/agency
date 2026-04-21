@@ -15,7 +15,7 @@ import (
 	quic "github.com/quic-go/quic-go"
 )
 
-func talkWR(stream quic.Stream, handle http.HandlerFunc) {
+func talkWR(stream *quic.Stream, handle http.HandlerFunc) {
 	defer stream.Close()
 
 	headerList := make([]string, 0)
@@ -69,7 +69,7 @@ func ReverseServe(network string, tlsCfg *tls.Config, quicConf *quic.Config, han
 	}
 }
 
-func transStream(upstream string, stream quic.Stream, timeout time.Duration) {
+func transStream(upstream string, stream *quic.Stream, timeout time.Duration) {
 	upConn, err := net.Dial("tcp", upstream)
 	if nil != err {
 		stream.Close()
