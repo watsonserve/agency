@@ -82,6 +82,8 @@ func copyBuffer(dst io.Writer, src io.Reader) (written int64, err error) {
 }
 
 func sendStream(load string, dst, src FullDuplexStream) {
+	defer closeStream(dst, src)
+
 	written, err := copyBuffer(dst, src)
 	errMsg := "success"
 	if nil != err {
@@ -91,9 +93,8 @@ func sendStream(load string, dst, src FullDuplexStream) {
 }
 
 func pipe(dst, src FullDuplexStream, rTimeout, wTimeout time.Duration) {
-	defer closeStream(dst, src)
-
 	if nil == dst || nil == src {
+		closeStream(dst, src)
 		log.Println("refused: invoid stream")
 		return
 	}
@@ -105,5 +106,5 @@ func pipe(dst, src FullDuplexStream, rTimeout, wTimeout time.Duration) {
 		dst.SetWriteDeadline(time.Now().Add(wTimeout))
 	}
 	go sendStream("up", dst, src)
-	sendStream("dw", src, dst)
+	go sendStream("dw", src, dst)
 }
