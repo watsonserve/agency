@@ -82,7 +82,9 @@ func copyBuffer(dst io.Writer, src io.Reader) (written int64, err error) {
 }
 
 func sendStream(load string, dst, src FullDuplexStream) {
-	defer closeStream(dst, src)
+	if "dw" == load {
+		defer closeStream(dst, src)
+	}
 
 	written, err := copyBuffer(dst, src)
 	errMsg := "success"
