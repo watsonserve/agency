@@ -22,7 +22,7 @@ func talkWR(stream *quic.Stream, handle http.HandlerFunc) {
 	reader := bufio.NewReader(stream)
 	for {
 		line, err := reader.ReadString('\n')
-		if line == "\r\n" || nil != err && io.EOF != err {
+		if line == "\r\n" || nil != err {
 			break
 		}
 		headerList = append(headerList, line)
