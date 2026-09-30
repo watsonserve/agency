@@ -15,11 +15,11 @@ import (
 )
 
 type ReverseTransParams struct {
-	network  string
-	tlsCfg   *tls.Config
-	quicConf *quic.Config
-	upstream string
-	timeout  time.Duration
+	Network  string
+	TlsCfg   *tls.Config
+	QuicConf *quic.Config
+	Upstream string
+	Timeout  time.Duration
 }
 
 type Retry struct {
@@ -93,7 +93,7 @@ func transStream(upstream string, stream *quic.Stream, timeout time.Duration) {
 }
 
 func reverseTrans(params *ReverseTransParams) error {
-	conn, err := quic.DialAddr(context.Background(), params.network, params.tlsCfg, params.quicConf)
+	conn, err := quic.DialAddr(context.Background(), params.Network, params.TlsCfg, params.QuicConf)
 	if nil != err {
 		return err
 	}
@@ -107,7 +107,7 @@ func reverseTrans(params *ReverseTransParams) error {
 			break
 		}
 
-		go transStream(params.upstream, stream, params.timeout)
+		go transStream(params.Upstream, stream, params.Timeout)
 	}
 	if time.Now().Unix()-t < minAcceptDuration {
 		return fmt.Errorf("accept returned too quickly")
