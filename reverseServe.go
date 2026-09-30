@@ -14,6 +14,21 @@ import (
 	quic "github.com/quic-go/quic-go"
 )
 
+type ReverseTransParams struct {
+	network  string
+	tlsCfg   *tls.Config
+	quicConf *quic.Config
+	upstream string
+	timeout  time.Duration
+}
+
+type Retry struct {
+	Time int
+	Wait time.Duration
+}
+
+const minAcceptDuration = 3
+
 func talkWR(stream *quic.Stream, handle http.HandlerFunc) {
 	defer stream.Close()
 
@@ -77,24 +92,43 @@ func transStream(upstream string, stream *quic.Stream, timeout time.Duration) {
 	pipe(upConn, stream, timeout, timeout)
 }
 
-func ReverseTrans(network string, tlsCfg *tls.Config, quicConf *quic.Config, upstream string, timeout time.Duration) {
-	for {
-		conn, err := quic.DialAddr(context.Background(), network, tlsCfg, quicConf)
-		if nil != err {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-
-		for {
-			stream, err := conn.AcceptStream(context.Background())
-			if nil != err {
-				fmt.Fprintln(os.Stderr, "waiting on conn", err)
-				break
-			}
-
-			go transStream(upstream, stream, timeout)
-		}
-
-		conn.CloseWithError(0, "")
+func reverseTrans(params *ReverseTransParams) error {
+	conn, err := quic.DialAddr(context.Background(), params.network, params.tlsCfg, params.quicConf)
+	if nil != err {
+		return err
 	}
+
+	defer conn.CloseWithError(0, "")
+	t := time.Now().Unix()
+
+	for {
+		stream, err := conn.AcceptStream(context.Background())
+		if nil != err {
+			break
+		}
+
+		go transStream(params.upstream, stream, params.timeout)
+	}
+	if time.Now().Unix()-t < minAcceptDuration {
+		return fmt.Errorf("accept returned too quickly")
+	}
+	return nil
+}
+
+func ReverseTrans(retry *Retry, params *ReverseTransParams) (err error) {
+	cnt := 0
+	max := retry.Time
+	wait := retry.Wait
+
+	for cnt < max {
+		err = reverseTrans(params)
+		if nil == err {
+			cnt ^= cnt
+			continue
+		}
+		cnt++
+		time.Sleep(wait)
+	}
+
+	return
 }

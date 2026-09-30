@@ -36,7 +36,7 @@ func ExampleTest() {
 	}
 	log.Println(opts)
 
-	p, err := agency.New(opts["crt"], opts["key"], opts["ca"], 8, 4)
+	p, err := agency.New(opts["crt"], opts["key"], opts["ca"], 64, 0, 0)
 	if nil != err {
 		fmt.Fprintln(os.Stderr, err.Error())
 		return
